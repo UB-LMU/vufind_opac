@@ -1,25 +1,42 @@
-[![CI Status](https://github.com/vufind-org/vufind/actions/workflows/ci.yaml/badge.svg?branch=dev)](https://github.com/vufind-org/vufind/actions/workflows/ci.yaml)
-VuFind®
-=======
+# Testbranch Verbundindex
 
-Introduction
-------------
-VuFind® is an open source discovery environment for searching a collection of
-records.  To learn more, visit https://vufind.org.
+Das ist ein Testbranch des SISIS ILS Drivers mit dem Verbundindex.
+Er befindet sich in einem frühen Entwicklungszustand.
+Basiert auf VuFind 10.1.
 
+## Umfang
 
-Installation
-------------
-See our [online installation documentation](https://vufind.org/wiki/installation) for step-by-step instructions for installing from packaged releases to popular platforms.
+Im großen besteht er aus:
+* dem SISIS Modul, hauptsächlich bestehend aus dem SISIS ILS Driver
+* einem local_theme mit minimal notwendigen Anpassungen (benötig bvb_theme)
 
-VuFind's [packaged releases](http://vufind-org.github.io/vufind/downloads.html) have all dependencies included. If you are installing directly from a Git checkout, you will need to load these dependencies manually using the [Composer](https://getcomposer.org) tool by running `composer install` from the VuFind home directory.
-
-
-Documentation and Support
--------------------------
-The VuFind community maintains a detailed [wiki](http://vufind.org/wiki) containing information on using and customizing the software. The VuFind website also lists [sources of community and commercial support](http://vufind-org.github.io/vufind/support.html).
-
-
-Contributing
-------------
-See our [developers handbook](https://vufind.org/wiki/development) for more information.
+## Benötigt
+* eine /usr/local/vufind/local/config/vufind/SISISNCIP.ini config Datei bestehend aus folgenden Sektionen
+    * [Catalog] mit den folgenden keys
+        * url = "ncip-url"
+        * katkey = "katkey_aus_dem_SOLR"
+        * passwordReset = "siehe_NCIP2SLNP-modul_release_notes"
+    * [Authentication]
+        * minimum_password_length = int (4)
+        * maximum_password_length = int (12)
+    * [LocationCode]
+        * Name_der_Zweigstelle = "Zweigstellennummer"
+        * bspw: Zentralbibliothek = "00"
+    * [RequestType]
+        * mapping von NCIP Statuscode-Strings (welche Bestellungen oder Vormerkungen erlauben) auf "hold" oder "recall"
+        * bspw: LSEntliehen = "recall"
+    * [RequestCode]
+        * mapping von NCIP Statuscode-Strings auf True oder False, abhängig davon ob sie eine Bestellung/Vormerkung erlauben
+        * LSEntliehen = True
+    * [IsAvailable]
+        * mapping von NCIP Statuscode-Strings auf 0,1,2, abhängig davon ob der Status nicht verfügbar, verfügbar oder unsicher bedeutet
+        * LSEntliehen = 0
+    * [StatusString]
+        * mapping von NCIP Statuscode-Strings auf einen String zur Anzeige in VuFind
+        * LSEntliehen = "entliehen"
+* folgende Anpassungen in /usr/local/vufind/local/config/vufind/config.ini 
+    * [Catalog] driver = "SISISNCIP"
+* Das SISIS Modul muss in /usr/local/vufind/config/application.config.php hinzugefügt werden
+* Folgende Dateien aus dem Verbund Modul
+    * View/Helper/Root/BvbILLHelper.php
+    * View/Helper/Root/BvbIncludeHelper.php

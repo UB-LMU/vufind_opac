@@ -1,0 +1,32 @@
+<?php
+
+    // Set up page title:
+    $this->headTitle($this->translate('first_login'));
+
+?>
+
+<h2 class="lightbox-header"><?=$this->transEsc('first_login')?></h2>
+<?=$this->flashmessages()?>
+<div>
+  <form action="<?=$this->url('content-page', ['page' => 'initiallogin'])?>" method="post">
+    <div class="form-group">
+      <label><?= $this->translate("Username")?> *</label> <input type="text" class="form-control" name="username" placeholder="" required="required">
+    </div>
+
+    <div class="form-group">
+      <label><?= $this->translate("start_password")?> *</label> <input type="password" class="form-control" name="start_password" placeholder="" required="required">
+    </div>
+
+    <div class="form-group">
+      <label><?= $this->translate("new_password")?> *</label> <input type="password" class="form-control" name="password" placeholder="4-12 Zeichen" required="required">
+    </div>
+
+    <div class="form-group">
+      <label><?= $this->translate("Password Again")?> *</label> <input type="password" class="form-control" name="new_password_rep" placeholder="4-12 Zeichen" required="required">
+    </div><small>* <?= $this->translate("This field is required")?>.</small><br>
+    <input type="button" value=<?= $this->translate("navigate_back")?> onclick="$('#modal .close').click()" class="btn btn-secondary">
+    <input type="submit" value=<?= $this->translate("Login")?> name="processLogin" class="btn btn-primary">
+    <input type="hidden" name="csrf" value="<?=$this->escapeHtmlAttr($this->auth()->getManager()->getCsrfHash())?>">
+  </form>
+
+</div>
