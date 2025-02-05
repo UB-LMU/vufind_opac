@@ -189,6 +189,10 @@ class SISISNCIP extends \VuFind\ILS\Driver\AbstractBase implements
         if(!isset($xml->LookupItemResponse->Item)){
             return $items;
         }
+        
+        // to be filled with $location_codes which need additional requests
+        $extraRequestLocations = [];
+        
         foreach($xml->LookupItemResponse->Item as $item)
         {
             $shelfmark = "";
@@ -215,48 +219,27 @@ class SISISNCIP extends \VuFind\ILS\Driver\AbstractBase implements
             $status = "";
 
 
-            // If the Circulationstatus for this $item wants us to select the right pickuplocation, send new LookupItem request with correct pickuplocation
+            // If the Circulationstatus for this $item wants us to select the right pickuplocation, flag the location_code and bibliographicId
             if(((string)$item->ItemOptionalFields->Ext->CirculationStatus == "038") or ((string)$item->ItemOptionalFields->Ext->CirculationStatus == "039")){
-
-                // set new options for the additional NCIP request
-                $itemOptions = [
-                    'NCIPFunction' => "LookupItem",
-                    'ItemId' => $bibliographicId,                   // search with the BibliographicId
-                    'LocationNameLevel' => $location_code,          // set the LocationNameLevel to the location the $item is
-                    'ItemIdentifierType' => "BibliographicId",      // set flag for single item status lookup
-                ];
-
-                // send new LookupItem request for the $item
-                $itemRequest = $this->createMessage($itemOptions);
-                $itemResponse = $this->sendRequest($itemRequest);
-                $itemXml = simplexml_load_string($itemResponse);
-
-                //get the circulation status code and strip _NoAction if necessary
-                $circulationStatus = (string)$itemXml->LookupItemResponse->ItemOptionalFields->CirculationStatus;
-                if(str_ends_with($circulationStatus, "_NoAction")){
-                    $circulationStatus = substr($circulationStatus, 0, -9);
+                if (! array_key_exists($location_code, $extraRequestLocations)) {
+                    $extraRequestLocations[$location_code] = [];
                 }
-
-                // set the status variables for this $item
-                $availability = $this->isAvailable($circulationStatus);
-                $status = $this->getStatusString($circulationStatus) ?? $circulationStatus;
-
-            }else{
-                //else set status values normally
-
-                //get the circulation status code and strip _NoAction if necessary
-                $circulationStatus = (string)$item->ItemOptionalFields->CirculationStatus;
-                if(str_ends_with($circulationStatus, "_NoAction")){
-                    $circulationStatus = substr($circulationStatus, 0, -9);
-                }
-
-                $availability = $this->isAvailable($circulationStatus);
-                $status = $this->getStatusString($circulationStatus) ?? $circulationStatus;
+                $extraRequestLocations[$location_code][] = $bibliographicId;
             }
+
+            //get the circulation status code and strip _NoAction if necessary
+            $circulationStatus = (string)$item->ItemOptionalFields->CirculationStatus;
+            if(str_ends_with($circulationStatus, "_NoAction")){
+                $circulationStatus = substr($circulationStatus, 0, -9);
+            }
+
+            $availability = $this->isAvailable($circulationStatus);
+            $status = $this->getStatusString($circulationStatus) ?? $circulationStatus;
 
             if(!($status === 'no_status')) {
                 $items[] = [
                     'id' => $id,
+                    'item_id' => $bibliographicId,
                     'availability' => $availability,
                     'status' => $status,
                     'location' => $locality,
@@ -266,11 +249,45 @@ class SISISNCIP extends \VuFind\ILS\Driver\AbstractBase implements
                 ];
             }
         }
+        
+        foreach ($extraRequestLocations as $extraRequestLocation => $extrabibliographicIds) {
+            // set new options for the additional NCIP request
+            $itemOptions = [
+                'NCIPFunction' => "LookupItem",
+                'ItemId' => $katKeyId,                             // search with the katkey
+                'LocationNameLevel' => $extraRequestLocation,      // set the LocationNameLevel to the location
+                'ItemIdentifierType' => "TitleId",
+            ];
 
+            // send new LookupItem request for the specified location_code
+            $itemRequest = $this->createMessage($itemOptions);
+            $itemResponse = $this->sendRequest($itemRequest);
+            $itemXml = simplexml_load_string($itemResponse);
 
-        /**
-        * Request for newly aquired items
-        */
+            foreach($itemXml->LookupItemResponse->Item as $item)
+            {
+                if (in_array((string)$item->ItemId->ItemIdentifierValue, $extrabibliographicIds, true)) {
+                    //get the circulation status code and strip _NoAction if necessary
+                    $circulationStatus = (string)$item->ItemOptionalFields->CirculationStatus;
+                    if(str_ends_with($circulationStatus, "_NoAction")){
+                        $circulationStatus = substr($circulationStatus, 0, -9);
+                    }
+                    $availability = $this->isAvailable($circulationStatus);
+                    $status = $this->getStatusString($circulationStatus) ?? $circulationStatus;
+
+                    foreach ($items as &$i) {
+                        if ($i['item_id'] == (string)$item->ItemId->ItemIdentifierValue) {
+                            $i['availability'] = $availability;
+                            $i['status'] = $status;
+                            break;
+                        }
+                    }
+                    unset($i);
+                }
+            }
+        }
+
+        // Request for newly aquired items
         $options = [
             'NCIPFunction' => "LookupItem",
             'ItemId' => $katKeyId,
@@ -1259,7 +1276,7 @@ class SISISNCIP extends \VuFind\ILS\Driver\AbstractBase implements
             'Password' => $patron['cat_password'],
             'ItemId' => $data['holdings_id'],
             'RequestType' => "", #ORDER or PreBook, depending on holdtype
-            'RequestScopeType' => "BibliographicIdId",
+            'RequestScopeType' => "BibliographicId",
             'LocationNameLevel' => $data['location_code'],
         ];
         if($data['holdtype'] === "hold"){
