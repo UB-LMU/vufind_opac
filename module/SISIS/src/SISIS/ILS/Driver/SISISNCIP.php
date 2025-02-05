@@ -128,7 +128,7 @@ class SISISNCIP extends \VuFind\ILS\Driver\AbstractBase implements
     {
         if($function == "Holds"){
             return [
-                'HMACKeys' => "id:holdtype:location_code:holdings_id",          #required for placeHold, all keys needed from getHolding seperated by : (needed: id, cs status and location)
+                'HMACKeys' => "id:item_id:holdtype:location_code:holdings_id",          #required for placeHold, all keys needed from getHolding seperated by : (needed: id, cs status and location)
                 'extraHoldFields' => "pickUpLocation",     #required for placeHold, all keys needed for the place hold form,  all parameters activated here must be processed by the placeHold method
                 #'defaultRequiredDate' => 'driver:0:2:0',
             ];
@@ -514,8 +514,8 @@ class SISISNCIP extends \VuFind\ILS\Driver\AbstractBase implements
                     'item_notes' => $notes ?? null,
                     'holdtype' => $holdtype,
                     'addLink' => "check",
-                    'item_id' => $bibliographicId,
-                    'holdings_id' => $katKeyId,
+                    'item_id' => $bibliographicId,  //mediennummer
+                    'holdings_id' => $katKeyId,     //katkey
                 ];
             }
         }
@@ -1226,11 +1226,14 @@ class SISISNCIP extends \VuFind\ILS\Driver\AbstractBase implements
             'NCIPFunction' => "RequestItem",
             'UserId' => $holdDetails['patron']['id'],
             'Password' => $holdDetails['patron']['cat_password'],
-            'ItemId' => $holdDetails['holdings_id'],
+            //'ItemId' => $holdDetails['holdings_id'],  //katkey
+            'ItemId' => $holdDetails['item_id'],        //mediennummer
             'RequestType' => "", #ORDER or PreBook, depending on holdtype
             'PickupLocation' => $holdDetails['pickUpLocation'],
             'LocationNameLevel' => $holdDetails['location_code'],
-            'RequestScopeType' => "BibliographicId",
+            //'RequestScopeType' => "BibliographicId",  //katkey
+            'RequestScopeType' => "ItemId",             //mediennummner
+
         ];
         if($holdDetails['holdtype'] === "hold"){
             $options['RequestType'] = "ORDER";
@@ -1274,9 +1277,11 @@ class SISISNCIP extends \VuFind\ILS\Driver\AbstractBase implements
             'NCIPFunction' => "RequestItem",
             'UserId' => $patron['id'],
             'Password' => $patron['cat_password'],
-            'ItemId' => $data['holdings_id'],
+            //'ItemId' => $data['holdings_id'],         //katkey
+            'ItemId' => $data['item_id'],               //mediennummer
             'RequestType' => "", #ORDER or PreBook, depending on holdtype
-            'RequestScopeType' => "BibliographicId",
+            //'RequestScopeType' => "BibliographicId",  //katkey
+            'RequestScopeType' => "ItemId",             //mediennummer
             'LocationNameLevel' => $data['location_code'],
         ];
         if($data['holdtype'] === "hold"){
@@ -1328,10 +1333,12 @@ class SISISNCIP extends \VuFind\ILS\Driver\AbstractBase implements
             'NCIPFunction' => "RequestItem",
             'UserId' => $patron['id'],
             'Password' => $patron['cat_password'],
-            'ItemId' => $holdDetails['holdings_id'],
+            //'ItemId' => $holdDetails['holdings_id'],  //katkey
+            'ItemId' => $holdDetails['item_id'],        //mediennummer
             'RequestType' => "", #ORDER or PreBook, depending on holdtype
             'LocationNameLevel' => $holdDetails['location_code'],
-            'RequestScopeType' => "BibliographicId",
+            //'RequestScopeType' => "BibliographicId",  //katkey
+            'RequestScopeType' => "ItemId",             //mediennummer
         ];
         if($holdDetails['holdtype'] === "hold"){
             $options['RequestType'] = "ORDER";
