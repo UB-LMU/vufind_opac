@@ -189,10 +189,10 @@ class SISISNCIP extends \VuFind\ILS\Driver\AbstractBase implements
         if(!isset($xml->LookupItemResponse->Item)){
             return $items;
         }
-        
+
         // to be filled with $location_codes which need additional requests
         $extraRequestLocations = [];
-        
+
         foreach($xml->LookupItemResponse->Item as $item)
         {
             $shelfmark = "";
@@ -249,7 +249,7 @@ class SISISNCIP extends \VuFind\ILS\Driver\AbstractBase implements
                 ];
             }
         }
-        
+
         foreach ($extraRequestLocations as $extraRequestLocation => $extrabibliographicIds) {
             // set new options for the additional NCIP request
             $itemOptions = [
@@ -1239,6 +1239,8 @@ class SISISNCIP extends \VuFind\ILS\Driver\AbstractBase implements
             $options['RequestType'] = "ORDER";
         }elseif($holdDetails['holdtype'] === "recall"){
             $options['RequestType'] = "PreBook";
+            $options['ItemId'] = $holdDetails['id'];
+            $options['RequestScopeType'] = $holdDetails['BibliographicId'];
         }
 
         $request = $this->createMessage($options);
