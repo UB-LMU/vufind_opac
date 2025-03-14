@@ -1273,6 +1273,12 @@ class SISISNCIP extends \VuFind\ILS\Driver\AbstractBase implements
      */
     public function checkRequestIsValid(string $id, array $data, array $patron) : array
     {
+        if(!isset($data['item_id'])) {
+            return [
+                'valid' => false,
+                'status' => 'Problem connecting to the ILS!',
+            ];
+        }
 
         # Options for the NCIP Request
         $options = [
@@ -1329,6 +1335,9 @@ class SISISNCIP extends \VuFind\ILS\Driver\AbstractBase implements
     */
     public function getPickUpLocations(array $patron, array $holdDetails = Null) : array
     {
+        if(!isset($holdDetails['item_id'])) {
+            return [];
+        }
 
         # options for request check
         $options = [
