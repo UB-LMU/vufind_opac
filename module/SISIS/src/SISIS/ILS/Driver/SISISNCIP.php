@@ -925,7 +925,7 @@ class SISISNCIP extends \VuFind\ILS\Driver\AbstractBase implements
             if(((string)$item->RequestType) == "PreBook"){
                 $holds[] = [
                     'type' => "recall",
-                    'holdings_id' => (string)$item->Ext->BibliographicRecordIdentifier,
+                    //'holdings_id' => (string)$item->Ext->BibliographicRecordIdentifier ?? null,
                     'item_id' => (string)$item->ItemId->ItemIdentifierValue,
                     'location' => (string)$item->Ext->LocationNameValue . ' / ' . (string)$item->Ext->PickupLocation,
                     'expire' => $this->formatDate((string)$item->Ext->DateDue),
@@ -1239,8 +1239,6 @@ class SISISNCIP extends \VuFind\ILS\Driver\AbstractBase implements
             $options['RequestType'] = "ORDER";
         }elseif($holdDetails['holdtype'] === "recall"){
             $options['RequestType'] = "PreBook";
-            $options['ItemId'] = $holdDetails['id'];
-            $options['RequestScopeType'] = $holdDetails['BibliographicId'];
         }
 
         $request = $this->createMessage($options);
@@ -1424,7 +1422,7 @@ class SISISNCIP extends \VuFind\ILS\Driver\AbstractBase implements
         if($holdDetails['type'] == "hold"){
             return "";
         }
-        return $holdDetails['holdings_id'];
+        return $holdDetails['item_id'];
     }
 
     /**
@@ -1456,6 +1454,7 @@ class SISISNCIP extends \VuFind\ILS\Driver\AbstractBase implements
             $options = [
                 'NCIPFunction' => "CancelRequestItem",
                 'ItemId' => $item,
+                'ItemIdentifierType' => "ItemId", # Hardcode Mediennummer
                 'UserId' => $cancelDetails['patron']['id'],
                 'Password' => $cancelDetails['patron']['cat_password'],
                 'Requesttype' => "PreBook", #Hardcoded, because only PreBook (Vormerkung/recall) can be cancelled
@@ -2087,6 +2086,9 @@ class SISISNCIP extends \VuFind\ILS\Driver\AbstractBase implements
                     xmlwriter_start_element($xml, 'ItemId');
                         xmlwriter_start_element($xml, 'ItemIdentifierValue');
                             xmlwriter_text($xml, $options['ItemId']);
+                        xmlwriter_end_element($xml);
+                        xmlwriter_start_element($xml, 'ItemIdentifierType');
+                            xmlwriter_text($xml, $options['ItemIdentifierType']);
                         xmlwriter_end_element($xml);
                     xmlwriter_end_element($xml);
                     # RequestType
